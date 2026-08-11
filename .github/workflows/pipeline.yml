@@ -117,6 +117,17 @@ jobs:
           printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/id_ec2 ~/.ssh/known_hosts
 
+      - name: Check EC2 SSH port
+        shell: bash
+        run: |
+          echo "Checking EC2 port 22..."
+          if timeout 10 bash -c "</dev/tcp/$EC2_HOST/22"; then
+            echo "EC2 port 22 is reachable"
+          else
+            echo "EC2 port 22 is NOT reachable"
+            exit 1
+          fi
+
       - name: Upload deployment definition
         shell: bash
         run: |
