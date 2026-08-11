@@ -1,7 +1,10 @@
 # BestDriver-web
 
+<<<<<<< HEAD
 BestDriver의 Next.js 프론트엔드입니다.
 
+=======
+>>>>>>> 9fa163a1d931fcd2b53c654501f8b8d9bca421cc
 ## Team
 
 |                              개발 / Leader                               |                                   개발                                    |                                   개발                                   |                                     개발                                     |                                    기획                                    |
@@ -35,6 +38,7 @@ BestDriver의 Next.js 프론트엔드입니다.
 - 제목은 변경 내용을 명확하고 간결하게 작성하며 마침표를 붙이지 않습니다.
 - 하나의 커밋에는 하나의 논리적인 변경만 포함합니다.
 - 상세 설명이 필요하면 제목 다음에 빈 줄을 두고 본문을 작성합니다.
+<<<<<<< HEAD
 
 ## 로컬 실행
 
@@ -62,3 +66,5 @@ npm run build
 `main` push가 성공하면 `ghcr.io/<owner>/<repository>:sha-<commit>`과 `latest`
 이미지를 발행합니다. 저장소 변수 `EC2_CD_ENABLED`를 `true`로 설정한 경우에만
 EC2의 `~/bestdriver`에 배포합니다.
+=======
+>>>>>>> 9fa163a1d931fcd2b53c654501f8b8d9bca421cc
