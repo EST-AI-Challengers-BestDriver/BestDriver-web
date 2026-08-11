@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { useRouter } from "next/navigation";
 
 import type {
@@ -10,51 +9,100 @@ import type {
 } from "@/types/route";
 
 
+// --------------------------------------------------
+// sessionStorage에서 결과 데이터 읽기
+// --------------------------------------------------
+
+const getSavedResultData = (): {
+  analysis: RouteAnalysisResult | null;
+  selectedRoute: RouteOption | null;
+} => {
+  // Next.js는 서버에서도 렌더링될 수 있기 때문에
+  // 브라우저 환경인지 먼저 확인
+  if (typeof window === "undefined") {
+    return {
+      analysis: null,
+      selectedRoute: null,
+    };
+  }
+
+
+  // analyze 페이지에서 저장한 전체 분석 결과
+  const analysisData =
+    sessionStorage.getItem("routeAnalysis");
+
+
+  // routes 페이지에서 사용자가 선택한 경로
+  const selectedRouteData =
+    sessionStorage.getItem("selectedRoute");
+
+
+  // 필요한 데이터가 하나라도 없다면 null 반환
+  if (!analysisData || !selectedRouteData) {
+    return {
+      analysis: null,
+      selectedRoute: null,
+    };
+  }
+
+
+  try {
+    // JSON 문자열을 다시 객체로 변환
+    return {
+      analysis:
+        JSON.parse(analysisData) as RouteAnalysisResult,
+
+      selectedRoute:
+        JSON.parse(selectedRouteData) as RouteOption,
+    };
+  } catch (error) {
+    // JSON 데이터가 잘못된 경우
+    console.error(
+      "결과 데이터를 불러오는 중 오류가 발생했습니다.",
+      error
+    );
+
+    return {
+      analysis: null,
+      selectedRoute: null,
+    };
+  }
+};
+
+
+// --------------------------------------------------
+// Result Page
+// --------------------------------------------------
+
 export default function ResultPage() {
   const router = useRouter();
 
 
+  // 페이지가 처음 만들어질 때
+  // sessionStorage에서 데이터를 한 번만 읽어옴
+  const [savedData] =
+    useState(getSavedResultData);
+
+
   // 전체 분석 결과
-  const [analysis, setAnalysis] =
-    useState<RouteAnalysisResult | null>(null);
+  const analysis =
+    savedData.analysis;
 
 
   // 사용자가 선택한 경로
-  const [selectedRoute, setSelectedRoute] =
-    useState<RouteOption | null>(null);
+  const selectedRoute =
+    savedData.selectedRoute;
 
 
-  // 페이지 최초 실행
+  // 필요한 데이터가 없으면 홈으로 이동
   useEffect(() => {
-    // 전체 분석 데이터
-    const analysisData =
-      sessionStorage.getItem("routeAnalysis");
-
-
-    // 사용자가 선택한 경로
-    const selectedData =
-      sessionStorage.getItem("selectedRoute");
-
-
-    // 필요한 데이터가 없다면 홈으로 이동
-    if (!analysisData || !selectedData) {
+    if (!analysis || !selectedRoute) {
       router.replace("/");
-      return;
     }
+  }, [analysis, selectedRoute, router]);
 
 
-    // JSON 문자열 → 객체
-    setAnalysis(
-      JSON.parse(analysisData)
-    );
-
-    setSelectedRoute(
-      JSON.parse(selectedData)
-    );
-  }, [router]);
-
-
-  // 데이터 불러오는 중
+  // 데이터가 없는 동안 보여주는 화면
   if (!analysis || !selectedRoute) {
     return (
       <main className="result-page">
@@ -69,13 +117,18 @@ export default function ResultPage() {
   // --------------------------------------------------
   // 비교 기준 경로
   // --------------------------------------------------
-  //
-  // 현재는 선택한 경로가 아닌 첫 번째 경로를
-  // 비교 대상으로 임시 사용합니다.
-  //
-  // 나중에는 백엔드에서
-  // baselineRouteId 또는 fastestRouteId 등을
-  // 내려주는 형태로 변경하는 것이 좋습니다.
+
+  /*
+    현재는 사용자가 선택한 경로가 아닌
+    첫 번째 경로를 비교 기준으로 사용.
+
+    나중에는 백엔드에서
+
+    baselineRouteId
+    fastestRouteId
+
+    같은 값을 내려주는 방식으로 변경 가능.
+  */
 
   const baselineRoute =
     analysis.routes.find(
@@ -84,11 +137,23 @@ export default function ResultPage() {
     ) ?? analysis.routes[0];
 
 
+  // 혹시 경로 배열 자체가 비어있는 경우 방어
+  if (!baselineRoute) {
+    return (
+      <main className="result-page">
+        <div className="result-container">
+          비교할 경로 데이터가 없습니다.
+        </div>
+      </main>
+    );
+  }
+
+
   // --------------------------------------------------
   // 절감 효과 계산
   // --------------------------------------------------
 
-  // CO2 절감량
+  // CO₂ 절감량
   const co2Saving = Math.max(
     0,
     baselineRoute.co2Kg -
@@ -104,7 +169,7 @@ export default function ResultPage() {
   );
 
 
-  // CO2 절감률
+  // CO₂ 절감률
   const co2SavingRate =
     baselineRoute.co2Kg > 0
       ? (
@@ -113,6 +178,26 @@ export default function ResultPage() {
           100
         ).toFixed(1)
       : "0";
+
+
+  // --------------------------------------------------
+  // 새로운 탐색
+  // --------------------------------------------------
+
+  const handleNewSearch = () => {
+    // 기존 분석 결과 삭제
+    sessionStorage.removeItem(
+      "routeAnalysis"
+    );
+
+    // 기존 선택 경로 삭제
+    sessionStorage.removeItem(
+      "selectedRoute"
+    );
+
+    // 홈으로 이동
+    router.push("/");
+  };
 
 
   return (
@@ -127,56 +212,67 @@ export default function ResultPage() {
 
         {/* Header */}
         <header className="result-header">
-            {/* 상단 헤더: 로고 + 홈 버튼 */}
-            <div className="header-top">
-                <p className="logo">ECOROUTE</p>
 
-                <button
-                type="button"
-                className="home-button"
-                onClick={() => router.push("/")}
-                aria-label="홈으로 이동"
-                >
-                <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path
-                    d="M3 10.5L12 3L21 10.5V21H14.5V15H9.5V21H3V10.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinejoin="round"
-                    />
-                </svg>
-                </button>
-            </div>
+          {/* 로고 + 홈 버튼 */}
+          <div className="header-top">
 
-            <h1>
-                더 친환경적인
-                <br />
-                이동을 선택했어요
-            </h1>
-
-            <p className="description">
-                선택한 경로의 예상 절감 효과입니다.
+            <p className="logo">
+              ECOROUTE
             </p>
-            </header>
 
 
-        {/* 가장 중요한 CO2 절감 결과 */}
+            <button
+              type="button"
+              className="home-button"
+              onClick={() => router.push("/")}
+              aria-label="홈으로 이동"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 10.5L12 3L21 10.5V21H14.5V15H9.5V21H3V10.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+          </div>
+
+
+          <h1>
+            더 친환경적인
+            <br />
+            이동을 선택했어요
+          </h1>
+
+
+          <p className="description">
+            선택한 경로의 예상 절감 효과입니다.
+          </p>
+
+        </header>
+
+
+        {/* CO₂ 절감 결과 */}
         <section className="main-saving-card">
 
           <span>
             예상 CO₂ 절감량
           </span>
 
+
           <strong>
             {co2Saving.toFixed(2)}
             <small> kg</small>
           </strong>
+
 
           <p>
             기준 경로 대비 {co2SavingRate}% 절감
@@ -188,6 +284,7 @@ export default function ResultPage() {
         {/* 상세 지표 */}
         <section className="result-metrics">
 
+          {/* 에너지 절감 */}
           <div className="result-metric-card">
 
             <span>
@@ -202,6 +299,7 @@ export default function ResultPage() {
           </div>
 
 
+          {/* 이동 거리 */}
           <div className="result-metric-card">
 
             <span>
@@ -209,13 +307,13 @@ export default function ResultPage() {
             </span>
 
             <strong>
-              {selectedRoute.distanceKm}
-              km
+              {selectedRoute.distanceKm}km
             </strong>
 
           </div>
 
 
+          {/* 예상 시간 */}
           <div className="result-metric-card">
 
             <span>
@@ -223,13 +321,13 @@ export default function ResultPage() {
             </span>
 
             <strong>
-              {selectedRoute.durationMinutes}
-              분
+              {selectedRoute.durationMinutes}분
             </strong>
 
           </div>
 
 
+          {/* 예상 CO₂ */}
           <div className="result-metric-card">
 
             <span>
@@ -237,8 +335,7 @@ export default function ResultPage() {
             </span>
 
             <strong>
-              {selectedRoute.co2Kg}
-              kg
+              {selectedRoute.co2Kg}kg
             </strong>
 
           </div>
@@ -254,6 +351,7 @@ export default function ResultPage() {
           </h2>
 
 
+          {/* 선택 경로 */}
           <div className="comparison-row">
 
             <span>
@@ -267,6 +365,7 @@ export default function ResultPage() {
           </div>
 
 
+          {/* 비교 기준 경로 */}
           <div className="comparison-row">
 
             <span>
@@ -282,23 +381,11 @@ export default function ResultPage() {
         </section>
 
 
-        {/* 처음으로 돌아가기 */}
+        {/* 새로운 경로 탐색 */}
         <button
           type="button"
           className="eco-button"
-          onClick={() => {
-            // 현재 세션 데이터 초기화
-            sessionStorage.removeItem(
-              "routeAnalysis"
-            );
-
-            sessionStorage.removeItem(
-              "selectedRoute"
-            );
-
-            // 첫 페이지 이동
-            router.push("/");
-          }}
+          onClick={handleNewSearch}
         >
           새로운 경로 탐색
         </button>
