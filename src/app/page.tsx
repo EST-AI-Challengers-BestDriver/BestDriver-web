@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type VehicleType = "트럭" | "승용" | "SUV";
@@ -16,7 +16,7 @@ const vehicleTypes: VehicleType[] = ["트럭", "승용", "SUV"];
 
 export default function HomePage() {
   const router = useRouter();
-
+  const timeInputRef = useRef<HTMLInputElement>(null);
   const [start, setStart] = useState("");
   const [destination, setDestination] = useState("");
   const [vehicle, setVehicle] = useState<VehicleType>("트럭");
@@ -146,27 +146,48 @@ export default function HomePage() {
             )}
           </div>
 
-          <label className="time-card" htmlFor="departureTime">
-            <span className="time-icon" aria-hidden="true">
-              ◷
-            </span>
+          <div className="time-card">
+            <button
+              type="button"
+              className="time-card-button"
+              onClick={() => {
+                const input = timeInputRef.current;
 
-            <span className="time-content">
-              <span className="card-label">출발 시간</span>
-              <span
-                className={`time-value ${
-                  departureTime ? "" : "placeholder"
-                }`}
-              >
-                {departureTime || "시간을 선택하세요"}
+                if (!input) return;
+
+                try {
+                  input.showPicker();
+                } catch {
+                  input.focus();
+                  input.click();
+                }
+              }}
+            >
+              <span className="time-icon" aria-hidden="true">
+                ◷
               </span>
-            </span>
 
-            <span className="time-arrow" aria-hidden="true">
-              ›
-            </span>
+              <span className="time-content">
+                <span className="card-label">
+                  출발 시간
+                </span>
+
+                <span
+                  className={`time-value ${
+                    departureTime ? "" : "placeholder"
+                  }`}
+                >
+                  {departureTime || "시간을 선택하세요"}
+                </span>
+              </span>
+
+              <span className="time-arrow" aria-hidden="true">
+                ›
+              </span>
+            </button>
 
             <input
+              ref={timeInputRef}
               id="departureTime"
               className="time-picker-input"
               type="time"
@@ -174,10 +195,13 @@ export default function HomePage() {
               max="23:59"
               step="60"
               value={departureTime}
-              onChange={(e) => setDepartureTime(e.target.value)}
+              onChange={(e) =>
+                setDepartureTime(e.target.value)
+              }
+              tabIndex={-1}
               aria-label="출발 시간 선택"
             />
-          </label>
+          </div>
         </div>
 
         <section className="location-card">

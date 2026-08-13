@@ -248,8 +248,7 @@ button {
   width: 100%;
 }
 
-.vehicle-card,
-.time-card {
+.vehicle-card {
   width: 100%;
   min-height: 78px;
   padding: 14px 16px;
@@ -306,9 +305,40 @@ button {
 
 .time-card {
   position: relative;
+  width: 100%;
+}
+
+.time-card-button {
+  width: 100%;
+  min-height: 78px;
+
+  padding: 14px 16px;
+
+  display: flex;
+  align-items: center;
+
   gap: 14px;
+
+  color: var(--text);
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: 17px;
+
   cursor: pointer;
-  overflow: hidden;
+
+  text-align: left;
+}
+
+.vehicle-card:hover {
+  border-color: var(--accent);
+}
+.time-card-button:hover {
+  border-color: var(--accent);
+}
+
+.time-card-button:active {
+  transform: scale(0.99);
 }
 
 .time-content {
@@ -318,6 +348,12 @@ button {
 
 .time-value {
   display: block;
+
+  color: var(--text);
+
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 700;
 }
 
 .time-value.placeholder {
@@ -326,21 +362,23 @@ button {
 }
 
 .time-arrow {
-  flex: 0 0 auto;
+  flex-shrink: 0;
+
   color: var(--muted);
+
   font-size: 27px;
   line-height: 1;
 }
 
 .time-picker-input {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+
+  width: 1px;
+  height: 1px;
+
   opacity: 0;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
+
+  pointer-events: none;
 }
 
 .arrow {
@@ -898,8 +936,7 @@ button {
     font-size: 29px;
   }
 
-  .vehicle-card,
-  .time-card {
+  .vehicle-card{
     min-height: 72px;
     padding-left: 13px;
     padding-right: 13px;
