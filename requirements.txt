@@ -6,4 +6,4 @@ osmnx==2.1.0
 networkx==3.6.1
 geopandas==1.1.4
 shapely==2.1.2
-torch==2.12.0
+torch==2.13.0
