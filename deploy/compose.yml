@@ -5,13 +5,17 @@ services:
     ports:
       - "127.0.0.1:${WEB_HOST_PORT:-3000}:3000"
     environment:
-      NODE_ENV: production
+      PYTHONUNBUFFERED: "1"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/api/health', timeout=2).read()
       interval: 10s
-      timeout: 3s
+      timeout: 5s
       retries: 6
-      start_period: 15s
+      start_period: 30s
     networks:
       bestdriver:
         aliases: [web]

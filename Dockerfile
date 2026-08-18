@@ -1,34 +1,26 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-alpine AS dependencies
+FROM python:3.14-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
 
-FROM node:24-alpine AS builder
-WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY . .
-RUN npm run build
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 ecoroute \
+    && useradd --system --uid 1001 --gid ecoroute --home-dir /app ecoroute \
+    && chown ecoroute:ecoroute /app
 
-FROM node:24-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
-    HOSTNAME=0.0.0.0
+COPY requirements.txt ./
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir -r requirements.txt
 
-RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+COPY --chown=ecoroute:ecoroute . .
 
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+USER ecoroute
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["python", "serve_demo.py", "--host", "0.0.0.0", "--port", "3000", "--no-browser"]

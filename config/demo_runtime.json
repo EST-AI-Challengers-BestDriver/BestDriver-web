@@ -1,0 +1,13 @@
+{
+  "region_key": "ann_arbor",
+  "graph_path": "data/processed/maps/ann_arbor/ann_arbor_drive_enriched.graphml",
+  "traffic_profile_path": "data/processed/traffic/ann_arbor/edge_hourly_profiles.csv.gz",
+  "model_checkpoint_path": "models/dnn/best_model.pt",
+  "selectable_bounds": {
+    "south": 42.220321,
+    "west": -83.804639,
+    "north": 42.3257188889,
+    "east": -83.673954
+  },
+  "selectable_node_spacing_m": 400.0
+}

@@ -1,27 +1,43 @@
-# dependencies
-/node_modules
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
 
-# Next.js
-/.next
-/out
-
-# production
-/build
-
-# local environment files
-.env*
-!.env.example
-
-# logs and tooling
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-.eslintcache
-*.tsbuildinfo
-
-# OS/editor
+# Editor and operating-system files
+.vscode/
 .DS_Store
 Thumbs.db
-.idea
-.vscode
+
+# Temporary output
+tmp/
+outputs/
+/ECO_Root_GIT/
+
+# Raw eVED/VED files, documents, preprocessing caches, and training tables
+data/raw/
+data/cache/
+data/docs/
+data/processed/audit/
+data/processed/segments_250m/
+data/processed/trip_profiles/
+
+# Checkpoint 3 publishes only the Ann Arbor runtime map/profile.
+data/processed/maps/washtenaw_county/
+data/processed/traffic/washtenaw_county/
+data/processed/traffic/ann_arbor/edge_hourly_profiles.csv
+
+# Keep the production DNN checkpoint; ignore any future intermediate checkpoints.
+models/dnn/*
+!models/dnn/best_model.pt
+
+# Keep compact model reports, but exclude large row-level exports and runtime routes.
+results/baseline/predictions.csv
+results/baseline/split_assignments.csv
+results/dnn/predictions.csv
+results/route_energy/
+results/routing/
+results/traffic/
+
+# Keep tests in the repository so CI can validate every upload.

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: web-${{ github.workflow }}-${{ github.ref }}
+  group: ecoroute-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -15,31 +15,70 @@ permissions:
 
 jobs:
   verify:
-    name: Lint, type-check and build
+    name: Test and smoke-check
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          node-version: 24
-          cache: npm
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
-      - name: Lint
-        run: npm run lint
+      - name: Check Python syntax
+        run: python -m compileall -q src *.py
 
-      - name: Type-check
-        run: npm run typecheck
+      - name: Run tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in tests/test_*.py; do
+            python "$test_file"
+          done
 
-      - name: Build application
-        run: npm run build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build deployment image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: ecoroute-ci:${{ github.sha }}
+          cache-from: type=gha,scope=ecoroute
+          cache-to: type=gha,mode=max,scope=ecoroute
+
+      - name: Smoke-check deployment image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name ecoroute-ci --publish 3000:3000 "ecoroute-ci:${GITHUB_SHA}"
+          trap 'docker logs ecoroute-ci; docker rm --force ecoroute-ci >/dev/null 2>&1 || true' EXIT
+
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
+              break
+            fi
+            if [[ "$(docker inspect --format '{{.State.Running}}' ecoroute-ci)" != "true" ]]; then
+              exit 1
+            fi
+            if [[ "$attempt" == "60" ]]; then
+              exit 1
+            fi
+            sleep 1
+          done
+
+          curl --fail --silent http://127.0.0.1:3000/ | grep -q '<title>EcoRoute'
+          curl --fail --silent http://127.0.0.1:3000/api/config \
+            | python -c 'import json,sys; data=json.load(sys.stdin); assert data["selectable_node_count"] > 0'
 
   publish:
     name: Build and publish image
@@ -78,16 +117,14 @@ jobs:
         with:
           context: .
           push: true
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}
             ${{ steps.image.outputs.name }}:latest
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=ecoroute
+          cache-to: type=gha,mode=max,scope=ecoroute
 
   deploy:
     name: Deploy to EC2
